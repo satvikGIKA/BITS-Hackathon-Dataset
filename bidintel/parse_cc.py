@@ -15,6 +15,7 @@ class CCExtras:
     grade: str | None
     project_manager: str | None
     value_inr: int | None
+    value_precise: bool = False
 
 
 def parse_cc_text(work_id: int, text: str) -> CCExtras:
@@ -30,17 +31,23 @@ def parse_cc_text(work_id: int, text: str) -> CCExtras:
             pm = m.group(1).strip()
 
     value_inr = None
+    value_precise = False
+    val_raw: str | None = None
     val_raw = field_after(lines, "Contract Value (Original)")
     if val_raw:
         value_inr = parse_money(val_raw)
     if value_inr is None:
         m = re.search(r"gross executed value of\s+([^\(]+)", text, re.IGNORECASE)
         if m:
-            value_inr = parse_money(m.group(1))
+            val_raw = m.group(1)
+            value_inr = parse_money(val_raw)
+    if val_raw and re.search(r"\d{1,2},\d{2},\d{2},\d{3}", val_raw):
+        value_precise = True
 
     return CCExtras(
         work_id=work_id,
         grade=grade,
         project_manager=pm,
         value_inr=value_inr,
+        value_precise=value_precise,
     )

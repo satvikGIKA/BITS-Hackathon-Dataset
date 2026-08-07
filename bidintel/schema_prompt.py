@@ -29,7 +29,7 @@ TABLE NOTES:
 - has_reference_letter: 1 if client reference letter exists, 0 if missing.
 - role: 'Prime' or 'JV Partner' (from portfolio).
 - grade: 'Excellent', 'Very Good', 'Good', 'Satisfactory', or NULL if unknown.
-- ~41 works have grade IS NULL; do not invent grades.
+- Short CCs may encode Satisfactory via 'satisfactory completion of the final inspection'.
 
 VALID CLIENT NAMES (use exact strings):
 {client_list}
@@ -37,11 +37,12 @@ VALID CLIENT NAMES (use exact strings):
 ANSWER RULES:
 - Return exactly ONE SQLite SELECT that produces a single numeric cell.
 - Money answers: integer rupees (no units, no commas). Example: 2008199999 not 2008.2 Cr.
-- Percentages: number out of 100 (e.g. 33.33 not 0.3333).
+- Percentages: number out of 100 with ROUND(..., 2) (e.g. 33.33 not 0.3333).
 - Day counts: integer (use julianday for date differences).
 - Counts: integer.
 - Use has_reference_letter = 0 for "no reference letter on file".
 - Use role = 'Prime' for "as Prime" questions.
+- Hop questions: resolve client from the named work, then aggregate ALL works for that client.
 - Output ONLY the SQL statement. No markdown, no explanation.
 
 EXAMPLES:
@@ -50,6 +51,12 @@ SQL: SELECT COUNT(*) FROM works WHERE client = 'Jal Nigam, Jharkhand' AND has_re
 
 Q: Total value of works for Public Health Engineering Dept, Gujarat as Prime?
 SQL: SELECT COALESCE(SUM(value_inr), 0) FROM works WHERE client = 'Public Health Engineering Dept, Gujarat' AND role = 'Prime'
+
+Q: Combined value of all completed assignments Rahul Menon delivered for Public Works Department, Govt of Maharashtra (starting from Ring Road — Maharashtra Pkg-125)?
+SQL: SELECT COALESCE(SUM(value_inr), 0) FROM works WHERE client = (SELECT client FROM works WHERE name = 'Ring Road — Maharashtra Pkg-125')
+
+Q: Share of Jal Nigam, Jharkhand works with reference letters (out of 100)?
+SQL: SELECT ROUND(100.0 * SUM(CASE WHEN has_reference_letter = 1 THEN 1 ELSE 0 END) / COUNT(*), 2) FROM works WHERE client = 'Jal Nigam, Jharkhand'
 """
 
 

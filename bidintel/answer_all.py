@@ -20,6 +20,7 @@ def answer_all(
     out_path: Path,
     *,
     verbose: bool = False,
+    no_llm_fallback: bool = False,
 ) -> None:
     data = json.loads(questions_path.read_text())
     questions = data["questions"]
@@ -30,10 +31,16 @@ def answer_all(
         for q in questions:
             qid = q["qid"]
             text = q["question"]
-            result = answer_question(conn, text, verbose=verbose)
+            result = answer_question(
+                conn,
+                text,
+                verbose=verbose,
+                llm_fallback=not no_llm_fallback,
+            )
             if verbose:
                 print(
-                    f"{qid}: answer={result.answer} sql={result.sql!r}",
+                    f"{qid}: answer={result.answer} method={result.method} "
+                    f"shape={result.shape!r} sql={result.sql!r}",
                     file=sys.stderr,
                 )
             line = {"qid": qid, "answer": result.answer}
@@ -53,8 +60,19 @@ def main() -> None:
     )
     ap.add_argument("--out", type=Path, default=Path("my_answers.jsonl"))
     ap.add_argument("-v", "--verbose", action="store_true")
+    ap.add_argument(
+        "--no-llm-fallback",
+        action="store_true",
+        help="Answer with shape templates only (no LLM)",
+    )
     args = ap.parse_args()
-    answer_all(args.db, args.questions, args.out, verbose=args.verbose)
+    answer_all(
+        args.db,
+        args.questions,
+        args.out,
+        verbose=args.verbose,
+        no_llm_fallback=args.no_llm_fallback,
+    )
 
 
 if __name__ == "__main__":

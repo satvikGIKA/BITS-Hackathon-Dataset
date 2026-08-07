@@ -66,8 +66,11 @@ def build_kb(documents_dir: Path, out_path: Path) -> sqlite3.Connection:
             w["grade"] = extras.grade
         if extras.project_manager and not w["project_manager"]:
             w["project_manager"] = extras.project_manager
-        if w["value_inr"] is None and extras.value_inr is not None:
-            w["value_inr"] = extras.value_inr
+        if extras.value_inr is not None:
+            if w["value_inr"] is None:
+                w["value_inr"] = extras.value_inr
+            elif extras.value_precise and extras.value_inr != w["value_inr"]:
+                w["value_inr"] = extras.value_inr
 
     if ppp_path.exists():
         roles = parse_ppp_roles(ppp_path)

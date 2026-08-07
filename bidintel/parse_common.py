@@ -59,11 +59,42 @@ def parse_date(text: str | None) -> str | None:
     return None
 
 
+_GRADE_VALUES = ("Excellent", "Very Good", "Good", "Satisfactory")
+
+
+def _normalize_grade(raw: str) -> str:
+    cleaned = re.sub(r"\s+", " ", raw.strip())
+    for grade in _GRADE_VALUES:
+        if cleaned.lower() == grade.lower():
+            return grade
+    return cleaned
+
+
 def extract_grade(text: str) -> str | None:
-    m = re.search(r"graded\s+([A-Za-z ]+?)\.", text)
+    """Extract client performance grade from completion certificate prose.
+
+    Short CCs use takeover boilerplate ('satisfactory completion of the final
+    inspection') as the formal grade. 'Found satisfactory during the final
+    inspection' is inspection language only — not a graded assessment.
+    """
+    m = re.search(
+        r"graded\s+(Excellent|Very Good|Good|Satisfactory)\.",
+        text,
+        re.IGNORECASE,
+    )
     if m:
-        return m.group(1).strip()
-    m = re.search(r"assessed the completed work as\s+([A-Za-z ]+?)[\.,]", text)
+        return _normalize_grade(m.group(1))
+    m = re.search(
+        r"assessed the completed work as\s+(Excellent|Very Good|Good|Satisfactory)[\.,]",
+        text,
+        re.IGNORECASE,
+    )
     if m:
-        return m.group(1).strip()
+        return _normalize_grade(m.group(1))
+    if re.search(
+        r"satisfactory\s+completion\s+of\s+the\s+final\s+inspection",
+        text,
+        re.IGNORECASE,
+    ):
+        return "Satisfactory"
     return None
